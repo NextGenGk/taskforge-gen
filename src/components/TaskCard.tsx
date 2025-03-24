@@ -1,10 +1,14 @@
 
 import { Task } from "@/types/database";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Calendar, Clock, Tag } from "lucide-react";
+import { Calendar, Clock, CheckCircle, Tag } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
+import { useState } from "react";
+import { api } from "@/services/api";
+import { useToast } from "@/components/ui/use-toast";
 
 const priorityColors = {
   low: "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300",
@@ -37,9 +41,41 @@ const categoryColors = {
 interface TaskCardProps {
   task: Task;
   onClick?: () => void;
+  onStatusChange?: (task: Task) => void;
 }
 
-const TaskCard = ({ task, onClick }: TaskCardProps) => {
+const TaskCard = ({ task, onClick, onStatusChange }: TaskCardProps) => {
+  const { toast } = useToast();
+  const [isUpdating, setIsUpdating] = useState(false);
+
+  const handleStatusChange = async (newStatus: 'pending' | 'in_progress' | 'completed') => {
+    if (task.status === newStatus) return;
+    
+    setIsUpdating(true);
+    try {
+      const updatedTask = await api.updateTaskStatus(task.id, newStatus);
+      
+      if (updatedTask) {
+        toast({
+          title: "Task updated",
+          description: `Task "${task.title}" has been moved to ${newStatus.replace('_', ' ')}.`,
+        });
+        
+        if (onStatusChange) {
+          onStatusChange(updatedTask);
+        }
+      }
+    } catch (error) {
+      toast({
+        title: "Update failed",
+        description: "Failed to update task status. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
   return (
     <Card 
       className={cn(
@@ -90,6 +126,55 @@ const TaskCard = ({ task, onClick }: TaskCardProps) => {
             <Badge variant="outline" className="text-xs">
               +{task.tags.length - 2}
             </Badge>
+          )}
+        </div>
+        
+        {/* Task action buttons */}
+        <div className="flex justify-between gap-2 mt-3 pt-2 border-t">
+          {task.status !== 'in_progress' && (
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="flex-1 text-xs h-8"
+              disabled={isUpdating || task.status === 'completed'}
+              onClick={(e) => {
+                e.stopPropagation();
+                handleStatusChange('in_progress');
+              }}
+            >
+              Start
+            </Button>
+          )}
+          
+          {task.status !== 'completed' && (
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="flex-1 text-xs h-8 text-green-600 hover:text-green-700 hover:bg-green-50 dark:hover:bg-green-950"
+              disabled={isUpdating}
+              onClick={(e) => {
+                e.stopPropagation();
+                handleStatusChange('completed');
+              }}
+            >
+              <CheckCircle className="h-3 w-3 mr-1" />
+              Complete
+            </Button>
+          )}
+          
+          {task.status === 'completed' && (
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="flex-1 text-xs h-8"
+              disabled={isUpdating}
+              onClick={(e) => {
+                e.stopPropagation();
+                handleStatusChange('pending');
+              }}
+            >
+              Reopen
+            </Button>
           )}
         </div>
       </CardFooter>

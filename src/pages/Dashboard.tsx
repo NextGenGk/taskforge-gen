@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -12,11 +12,40 @@ import { Business, Task, TaskStatus, Tip, User } from "@/types/database";
 import TaskCard from "@/components/TaskCard";
 import TipCard from "@/components/TipCard";
 import BusinessForm from "@/components/BusinessForm";
+import { supabase } from "@/integrations/supabase/client";
 
 const Dashboard = () => {
   const { toast } = useToast();
+  const queryClient = useQueryClient();
   const [selectedBusiness, setSelectedBusiness] = useState<Business | null>(null);
   const [showBusinessForm, setShowBusinessForm] = useState(false);
+  const [isGeneratingTasks, setIsGeneratingTasks] = useState(false);
+
+  // Set up realtime subscription
+  useEffect(() => {
+    if (!selectedBusiness) return;
+
+    const channel = supabase
+      .channel('tasks-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'tasks',
+          filter: `business_id=eq.${selectedBusiness.id}`
+        },
+        () => {
+          // Refetch tasks when there's a change
+          queryClient.invalidateQueries({ queryKey: ["tasks", selectedBusiness.id] });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [selectedBusiness, queryClient]);
 
   // Fetch current user
   const { data: currentUser, isLoading: isLoadingUser } = useQuery({
@@ -67,6 +96,7 @@ const Dashboard = () => {
   const generateTasks = async () => {
     if (!selectedBusiness) return;
     
+    setIsGeneratingTasks(true);
     toast({
       title: "Generating tasks...",
       description: "Our AI is analyzing your business data to create personalized tasks.",
@@ -87,6 +117,9 @@ const Dashboard = () => {
         description: "There was an error generating tasks. Please try again.",
         variant: "destructive",
       });
+      console.error("Error generating tasks:", error);
+    } finally {
+      setIsGeneratingTasks(false);
     }
   };
 
@@ -94,6 +127,11 @@ const Dashboard = () => {
     refetchBusinesses();
     setSelectedBusiness(business);
     setShowBusinessForm(false);
+  };
+
+  // Handle task status change
+  const handleTaskStatusChange = (updatedTask: Task) => {
+    queryClient.invalidateQueries({ queryKey: ["tasks", selectedBusiness?.id] });
   };
 
   // Render loading state
@@ -160,9 +198,13 @@ const Dashboard = () => {
             <PlusCircle className="h-4 w-4" />
             <span>Add Business</span>
           </Button>
-          <Button onClick={generateTasks} className="flex items-center gap-2">
+          <Button 
+            onClick={generateTasks} 
+            className="flex items-center gap-2"
+            disabled={isGeneratingTasks}
+          >
             <PlusCircle className="h-4 w-4" />
-            <span>Generate Tasks</span>
+            <span>{isGeneratingTasks ? "Generating..." : "Generate Tasks"}</span>
           </Button>
         </div>
       </div>
@@ -244,21 +286,60 @@ const Dashboard = () => {
         
         <TabsContent value="tasks" className="animate-fade-in">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-            <Button variant="outline" className="flex items-center justify-between h-auto py-3 px-4">
+            <Button 
+              variant="outline" 
+              className="flex items-center justify-between h-auto py-3 px-4"
+              onClick={() => {
+                // Filter to show only pending tasks
+                queryClient.setQueryData(["tasks", selectedBusiness?.id], 
+                  tasks?.filter(t => t.status === "pending") || []);
+                
+                // After 3 seconds, refetch to show all tasks again
+                setTimeout(() => {
+                  refetchTasks();
+                }, 3000);
+              }}
+            >
               <div className="flex items-center gap-3">
                 <Clock className="h-5 w-5 text-blue-500" />
-                <span>Weekly Tasks</span>
+                <span>Pending Tasks</span>
               </div>
               <ArrowUpRight className="h-4 w-4" />
             </Button>
-            <Button variant="outline" className="flex items-center justify-between h-auto py-3 px-4">
+            <Button 
+              variant="outline" 
+              className="flex items-center justify-between h-auto py-3 px-4"
+              onClick={() => {
+                // Filter to show only in progress tasks
+                queryClient.setQueryData(["tasks", selectedBusiness?.id], 
+                  tasks?.filter(t => t.status === "in_progress") || []);
+                
+                // After 3 seconds, refetch to show all tasks again
+                setTimeout(() => {
+                  refetchTasks();
+                }, 3000);
+              }}
+            >
               <div className="flex items-center gap-3">
                 <Calendar className="h-5 w-5 text-purple-500" />
-                <span>Monthly Tasks</span>
+                <span>In Progress</span>
               </div>
               <ArrowUpRight className="h-4 w-4" />
             </Button>
-            <Button variant="outline" className="flex items-center justify-between h-auto py-3 px-4">
+            <Button 
+              variant="outline" 
+              className="flex items-center justify-between h-auto py-3 px-4"
+              onClick={() => {
+                // Filter to show only completed tasks
+                queryClient.setQueryData(["tasks", selectedBusiness?.id], 
+                  tasks?.filter(t => t.status === "completed") || []);
+                
+                // After 3 seconds, refetch to show all tasks again
+                setTimeout(() => {
+                  refetchTasks();
+                }, 3000);
+              }}
+            >
               <div className="flex items-center gap-3">
                 <CheckCircle className="h-5 w-5 text-green-500" />
                 <span>Completed Tasks</span>
@@ -280,7 +361,11 @@ const Dashboard = () => {
           ) : tasks && tasks.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {tasks.map((task) => (
-                <TaskCard key={task.id} task={task} />
+                <TaskCard 
+                  key={task.id} 
+                  task={task} 
+                  onStatusChange={handleTaskStatusChange} 
+                />
               ))}
             </div>
           ) : (
@@ -292,9 +377,13 @@ const Dashboard = () => {
                   <p className="text-muted-foreground mb-6">
                     Generate your first tasks based on your business information.
                   </p>
-                  <Button onClick={generateTasks} className="flex items-center gap-2">
+                  <Button 
+                    onClick={generateTasks} 
+                    className="flex items-center gap-2"
+                    disabled={isGeneratingTasks}
+                  >
                     <PlusCircle className="h-4 w-4" />
-                    <span>Generate Tasks</span>
+                    <span>{isGeneratingTasks ? "Generating..." : "Generate Tasks"}</span>
                   </Button>
                 </div>
               </CardContent>
