@@ -64,11 +64,21 @@ const BusinessForm = ({ onSubmitSuccess, userId }: BusinessFormProps) => {
   const onSubmit = async (data: BusinessFormValues) => {
     setIsSubmitting(true);
     try {
-      const business = await api.createBusiness({
-        ...data,
+      // Ensure all required fields are present and non-optional before passing to API
+      const businessData: Omit<Business, "id" | "createdAt" | "updatedAt"> = {
         userId,
+        name: data.name,
+        type: data.type,
+        location: data.location,
+        industry: data.industry,
+        size: data.size,
+        description: data.description,
+        foundedYear: data.foundedYear,
+        website: data.website || undefined,
         logoUrl: undefined,
-      });
+      };
+      
+      const business = await api.createBusiness(businessData);
       
       toast({
         title: "Business created!",
