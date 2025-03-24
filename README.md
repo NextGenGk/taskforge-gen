@@ -1,69 +1,78 @@
-# Welcome to your Lovable project
 
-## Project info
+# TaskForge
 
-**URL**: https://lovable.dev/projects/029412b7-efea-4b1c-a666-72942e641bb0
+TaskForge is an elegant business task management application that uses AI to generate personalized tasks based on business information.
 
-## How can I edit this code?
+## Features
 
-There are several ways of editing your application.
+- **Business Profile Management:** Create and manage detailed business profiles with industry, size, location, and other key information.
+- **AI Task Generation:** Automatically generate relevant tasks based on business data.
+- **Task Management:** Track task status, priority, and categorization.
+- **Business Tips:** Get industry-specific tips and suggestions.
+- **Clean, Intuitive UI:** Minimal, Apple-inspired design with smooth animations and transitions.
 
-**Use Lovable**
+## Database Schema
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/029412b7-efea-4b1c-a666-72942e641bb0) and start prompting.
+The application uses the following data model:
 
-Changes made via Lovable will be committed automatically to this repo.
+### Business
+- id: string
+- userId: string
+- name: string
+- type: string
+- location: string
+- industry: string
+- size: BusinessSize (enum)
+- description: string
+- foundedYear?: number
+- website?: string
+- logoUrl?: string
+- createdAt: Date
+- updatedAt: Date
 
-**Use your preferred IDE**
+### Task
+- id: string
+- businessId: string
+- title: string
+- description: string
+- frequency: TaskFrequency (enum)
+- priority: TaskPriority (enum)
+- status: TaskStatus (enum)
+- dueDate?: Date
+- completedAt?: Date
+- category: TaskCategory (enum)
+- tags: string[]
+- createdAt: Date
+- updatedAt: Date
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+### Tip
+- id: string
+- businessId: string
+- title: string
+- content: string
+- category: TaskCategory (enum)
+- source?: string
+- createdAt: Date
+- updatedAt: Date
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+### LLM Integration
+- LLMPrompt: Template for generating tasks
+- LLMModel: Model configuration
+- LLMResponse: Record of AI interactions
 
-Follow these steps:
+## Technology Stack
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+- React with TypeScript
+- Tailwind CSS for styling
+- React Query for data fetching
+- Shadcn/UI component library
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+## Flow
 
-# Step 3: Install the necessary dependencies.
-npm i
+1. User submits business data through the BusinessForm component
+2. Data is stored in the database (simulated with mock data service)
+3. LLM generates tasks based on business data (simulated in the API service)
+4. Tasks are stored in the database
+5. Frontend displays tasks in the dashboard interface
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
-```
-
-**Edit a file directly in GitHub**
-
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
-
-**Use GitHub Codespaces**
-
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
-
-## What technologies are used for this project?
-
-This project is built with .
-
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
-
-## How can I deploy this project?
-
-Simply open [Lovable](https://lovable.dev/projects/029412b7-efea-4b1c-a666-72942e641bb0) and click on Share -> Publish.
-
-## I want to use a custom domain - is that possible?
-
-We don't support custom domains (yet). If you want to deploy your project under your own domain then we recommend using Netlify. Visit our docs for more details: [Custom domains](https://docs.lovable.dev/tips-tricks/custom-domain/)
+This architecture allows for a seamless user experience while providing valuable, AI-generated business tasks.
