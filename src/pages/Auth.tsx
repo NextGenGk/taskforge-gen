@@ -1,30 +1,43 @@
 
-import React, { useState } from 'react';
-import { Navigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Github, Mail } from 'lucide-react';
+import { Github, Mail, Loader2 } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { useToast } from '@/hooks/use-toast';
 
 const Auth = () => {
   const { user, signIn, signUp, signInWithProvider } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const location = useLocation();
+  const navigate = useNavigate();
+  const { toast } = useToast();
+  
+  // Get the return path from location state
+  const from = location.state?.from || '/dashboard';
 
-  // If user is already logged in, redirect to dashboard
-  if (user) {
-    return <Navigate to="/dashboard" replace />;
-  }
+  // If user is already logged in, redirect to the return path or dashboard
+  useEffect(() => {
+    if (user) {
+      navigate(from, { replace: true });
+    }
+  }, [user, navigate, from]);
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     try {
       await signIn(email, password);
+      toast({
+        title: "Welcome back!",
+        description: "You've successfully signed in.",
+      });
     } catch (error) {
       console.error('Sign in error:', error);
     } finally {
@@ -43,6 +56,26 @@ const Auth = () => {
       setIsLoading(false);
     }
   };
+
+  const handleProviderSignIn = async (provider: 'google' | 'github') => {
+    setIsLoading(true);
+    try {
+      await signInWithProvider(provider);
+    } catch (error) {
+      console.error(`Sign in with ${provider} error:`, error);
+      toast({
+        title: "Authentication failed",
+        description: `Failed to sign in with ${provider}. Please try again.`,
+        variant: "destructive",
+      });
+      setIsLoading(false);
+    }
+  };
+
+  // If user is already logged in, no need to render the component
+  if (user) {
+    return <Navigate to={from} replace />;
+  }
 
   return (
     <div className="flex items-center justify-center min-h-screen bg-gray-50">
@@ -73,6 +106,7 @@ const Auth = () => {
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       required
+                      disabled={isLoading}
                     />
                   </div>
                   
@@ -85,13 +119,14 @@ const Auth = () => {
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       required
+                      disabled={isLoading}
                     />
                   </div>
                 </CardContent>
                 
                 <CardFooter className="flex flex-col">
                   <Button type="submit" className="w-full" disabled={isLoading}>
-                    {isLoading ? 'Signing in...' : 'Login'}
+                    {isLoading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Signing in...</> : 'Login'}
                   </Button>
                 </CardFooter>
               </form>
@@ -109,6 +144,7 @@ const Auth = () => {
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       required
+                      disabled={isLoading}
                     />
                   </div>
                   
@@ -121,13 +157,14 @@ const Auth = () => {
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       required
+                      disabled={isLoading}
                     />
                   </div>
                 </CardContent>
                 
                 <CardFooter className="flex flex-col">
                   <Button type="submit" className="w-full" disabled={isLoading}>
-                    {isLoading ? 'Creating account...' : 'Sign Up'}
+                    {isLoading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Creating account...</> : 'Sign Up'}
                   </Button>
                 </CardFooter>
               </form>
@@ -147,8 +184,9 @@ const Auth = () => {
             <div className="grid grid-cols-2 gap-3">
               <Button 
                 variant="outline" 
-                onClick={() => signInWithProvider('google')}
+                onClick={() => handleProviderSignIn('google')}
                 className="w-full"
+                disabled={isLoading}
               >
                 <svg className="h-5 w-5 mr-2" viewBox="0 0 24 24">
                   <path
@@ -174,8 +212,9 @@ const Auth = () => {
               
               <Button 
                 variant="outline" 
-                onClick={() => signInWithProvider('github')}
+                onClick={() => handleProviderSignIn('github')}
                 className="w-full"
+                disabled={isLoading}
               >
                 <Github className="h-5 w-5 mr-2" />
                 GitHub
