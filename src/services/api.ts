@@ -1,4 +1,3 @@
-
 import { 
   mockDataService, 
   businesses, 
@@ -247,5 +246,44 @@ export const api = {
       console.error('Failed to generate tasks:', error);
       return [];
     }
+  },
+
+  // Auth methods
+  signIn: async (email: string, password: string) => {
+    return await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
+  },
+
+  signInWithProvider: async (provider: 'google' | 'github') => {
+    return await supabase.auth.signInWithOAuth({
+      provider,
+      options: {
+        redirectTo: `${window.location.origin}/dashboard`,
+      },
+    });
+  },
+
+  signUp: async (email: string, password: string) => {
+    return await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        emailRedirectTo: `${window.location.origin}/dashboard`,
+      },
+    });
+  },
+
+  signOut: async () => {
+    return await supabase.auth.signOut();
+  },
+
+  getSession: async () => {
+    return await supabase.auth.getSession();
+  },
+
+  refreshSession: async () => {
+    return await supabase.auth.refreshSession();
   }
 };
