@@ -1,3 +1,4 @@
+
 import { 
   mockDataService, 
   businesses, 
@@ -29,7 +30,12 @@ export const api = {
       // so we'll use mock data for now
       return new Promise((resolve) => {
         setTimeout(() => {
-          resolve(users[0]);
+          resolve({
+            ...users[0],
+            id: user.id, // Make sure to use the real user ID
+            email: user.email || users[0].email,
+            name: user.user_metadata?.full_name || user.email?.split('@')[0] || users[0].name
+          });
         }, 300);
       });
     }
@@ -44,6 +50,7 @@ export const api = {
 
   // Business related endpoints
   getBusinesses: async (userId: string): Promise<Business[]> => {
+    // Ensure we're only getting businesses for the specific user
     // Fallback to mock data for development since our Supabase 
     // tables don't match our expected structure yet
     return new Promise((resolve) => {
@@ -55,17 +62,28 @@ export const api = {
   },
 
   getBusiness: async (businessId: string): Promise<Business | undefined> => {
+    // Get current user to enforce access control
+    const { data: { user } } = await supabase.auth.getUser();
+    
     // Fallback to mock data for development since our Supabase 
     // tables don't match our expected structure yet
     return new Promise((resolve) => {
       setTimeout(() => {
         const result = mockDataService.getBusiness(businessId);
-        resolve(result);
+        // Only return if this business belongs to the current user
+        if (result && (result.userId === user?.id || !user)) {
+          resolve(result);
+        } else {
+          resolve(undefined); // Access denied or not found
+        }
       }, 300);
     });
   },
 
   createBusiness: async (data: Omit<Business, "id" | "createdAt" | "updatedAt">): Promise<Business> => {
+    // Get current user to enforce access control
+    const { data: { user } } = await supabase.auth.getUser();
+    
     // Fallback to mock data for development since our Supabase 
     // tables don't match our expected structure yet
     return new Promise((resolve) => {
@@ -84,6 +102,15 @@ export const api = {
 
   // Task related endpoints
   getTasks: async (businessId: string): Promise<Task[]> => {
+    // Get current user to enforce access control
+    const { data: { user } } = await supabase.auth.getUser();
+    
+    // First check if the business belongs to the current user
+    const business = await api.getBusiness(businessId);
+    if (!business || (business.userId !== user?.id && user)) {
+      return []; // Access denied or not found
+    }
+    
     // Fallback to mock data for development since our Supabase 
     // tables don't match our expected structure yet
     return new Promise((resolve) => {
@@ -145,6 +172,15 @@ export const api = {
   },
 
   getTasksByStatus: async (businessId: string, status: TaskStatus): Promise<Task[]> => {
+    // Get current user to enforce access control
+    const { data: { user } } = await supabase.auth.getUser();
+    
+    // First check if the business belongs to the current user
+    const business = await api.getBusiness(businessId);
+    if (!business || (business.userId !== user?.id && user)) {
+      return []; // Access denied or not found
+    }
+    
     // Fallback to mock data for development since our Supabase 
     // tables don't match our expected structure yet
     return new Promise((resolve) => {
@@ -156,6 +192,15 @@ export const api = {
   },
 
   getTasksByCategory: async (businessId: string, category: TaskCategory): Promise<Task[]> => {
+    // Get current user to enforce access control
+    const { data: { user } } = await supabase.auth.getUser();
+    
+    // First check if the business belongs to the current user
+    const business = await api.getBusiness(businessId);
+    if (!business || (business.userId !== user?.id && user)) {
+      return []; // Access denied or not found
+    }
+    
     // Fallback to mock data for development since our Supabase 
     // tables don't match our expected structure yet
     return new Promise((resolve) => {
@@ -168,6 +213,15 @@ export const api = {
 
   // Tip related endpoints
   getTips: async (businessId: string): Promise<Tip[]> => {
+    // Get current user to enforce access control
+    const { data: { user } } = await supabase.auth.getUser();
+    
+    // First check if the business belongs to the current user
+    const business = await api.getBusiness(businessId);
+    if (!business || (business.userId !== user?.id && user)) {
+      return []; // Access denied or not found
+    }
+    
     // Fallback to mock data for development since our Supabase 
     // tables don't match our expected structure yet
     return new Promise((resolve) => {
@@ -179,6 +233,15 @@ export const api = {
   },
 
   getTipsByCategory: async (businessId: string, category: TaskCategory): Promise<Tip[]> => {
+    // Get current user to enforce access control
+    const { data: { user } } = await supabase.auth.getUser();
+    
+    // First check if the business belongs to the current user
+    const business = await api.getBusiness(businessId);
+    if (!business || (business.userId !== user?.id && user)) {
+      return []; // Access denied or not found
+    }
+    
     // Fallback to mock data for development since our Supabase 
     // tables don't match our expected structure yet
     return new Promise((resolve) => {
