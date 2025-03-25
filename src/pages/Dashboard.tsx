@@ -11,7 +11,7 @@ import { api } from "@/services/api";
 import { Business, Task, TaskStatus, Tip, User } from "@/types/database";
 import TaskCard from "@/components/TaskCard";
 import TipCard from "@/components/TipCard";
-import BusinessForm from "@/components/BusinessForm";
+import BusinessOnboarding from "@/components/BusinessOnboarding";
 import { supabase } from "@/integrations/supabase/client";
 
 const Dashboard = () => {
@@ -21,7 +21,6 @@ const Dashboard = () => {
   const [showBusinessForm, setShowBusinessForm] = useState(false);
   const [isGeneratingTasks, setIsGeneratingTasks] = useState(false);
 
-  // Set up realtime subscription
   useEffect(() => {
     if (!selectedBusiness) return;
 
@@ -36,7 +35,6 @@ const Dashboard = () => {
           filter: `business_id=eq.${selectedBusiness.id}`
         },
         () => {
-          // Refetch tasks when there's a change
           queryClient.invalidateQueries({ queryKey: ["tasks", selectedBusiness.id] });
         }
       )
@@ -47,13 +45,11 @@ const Dashboard = () => {
     };
   }, [selectedBusiness, queryClient]);
 
-  // Fetch current user
   const { data: currentUser, isLoading: isLoadingUser } = useQuery({
     queryKey: ["currentUser"],
     queryFn: () => api.getCurrentUser(),
   });
 
-  // Fetch businesses for the current user
   const { 
     data: businesses,
     isLoading: isLoadingBusinesses, 
@@ -64,14 +60,12 @@ const Dashboard = () => {
     enabled: !!currentUser,
   });
 
-  // Set selected business when businesses are loaded
   useEffect(() => {
     if (businesses?.length && !selectedBusiness) {
       setSelectedBusiness(businesses[0]);
     }
   }, [businesses, selectedBusiness]);
 
-  // Fetch tasks for the selected business
   const { 
     data: tasks,
     isLoading: isLoadingTasks,
@@ -82,7 +76,6 @@ const Dashboard = () => {
     enabled: !!selectedBusiness,
   });
 
-  // Fetch tips for the selected business
   const { 
     data: tips,
     isLoading: isLoadingTips
@@ -92,7 +85,6 @@ const Dashboard = () => {
     enabled: !!selectedBusiness,
   });
 
-  // Generate tasks with LLM
   const generateTasks = async () => {
     if (!selectedBusiness) return;
     
@@ -129,12 +121,10 @@ const Dashboard = () => {
     setShowBusinessForm(false);
   };
 
-  // Handle task status change
   const handleTaskStatusChange = (updatedTask: Task) => {
     queryClient.invalidateQueries({ queryKey: ["tasks", selectedBusiness?.id] });
   };
 
-  // Render loading state
   if (isLoadingUser) {
     return (
       <div className="container max-w-6xl px-4 py-8 animate-fade-in">
@@ -146,7 +136,6 @@ const Dashboard = () => {
     );
   }
 
-  // Render business form if no businesses or form is shown
   if (showBusinessForm || (businesses && businesses.length === 0)) {
     return (
       <div className="container max-w-3xl px-4 py-12 animate-fade-in">
@@ -157,27 +146,18 @@ const Dashboard = () => {
           </p>
         </div>
         
-        <Card className="border shadow-md animate-zoom-in">
-          <CardHeader className="pb-3">
-            <CardTitle>Business Information</CardTitle>
-            <CardDescription>
-              This information will be used to generate customized tasks for your business.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            {currentUser && (
-              <BusinessForm 
-                onSubmitSuccess={handleBusinessCreated} 
-                userId={currentUser.id}
-              />
-            )}
-          </CardContent>
-        </Card>
+        <div className="animate-zoom-in">
+          {currentUser && (
+            <BusinessOnboarding 
+              onSubmitSuccess={handleBusinessCreated} 
+              userId={currentUser.id}
+            />
+          )}
+        </div>
       </div>
     );
   }
 
-  // Calculate task stats
   const pendingTasks = tasks?.filter(task => task.status === "pending") || [];
   const inProgressTasks = tasks?.filter(task => task.status === "in_progress") || [];
   const completedTasks = tasks?.filter(task => task.status === "completed") || [];
@@ -290,11 +270,9 @@ const Dashboard = () => {
               variant="outline" 
               className="flex items-center justify-between h-auto py-3 px-4"
               onClick={() => {
-                // Filter to show only pending tasks
                 queryClient.setQueryData(["tasks", selectedBusiness?.id], 
                   tasks?.filter(t => t.status === "pending") || []);
                 
-                // After 3 seconds, refetch to show all tasks again
                 setTimeout(() => {
                   refetchTasks();
                 }, 3000);
@@ -310,11 +288,9 @@ const Dashboard = () => {
               variant="outline" 
               className="flex items-center justify-between h-auto py-3 px-4"
               onClick={() => {
-                // Filter to show only in progress tasks
                 queryClient.setQueryData(["tasks", selectedBusiness?.id], 
                   tasks?.filter(t => t.status === "in_progress") || []);
                 
-                // After 3 seconds, refetch to show all tasks again
                 setTimeout(() => {
                   refetchTasks();
                 }, 3000);
@@ -330,11 +306,9 @@ const Dashboard = () => {
               variant="outline" 
               className="flex items-center justify-between h-auto py-3 px-4"
               onClick={() => {
-                // Filter to show only completed tasks
                 queryClient.setQueryData(["tasks", selectedBusiness?.id], 
                   tasks?.filter(t => t.status === "completed") || []);
                 
-                // After 3 seconds, refetch to show all tasks again
                 setTimeout(() => {
                   refetchTasks();
                 }, 3000);
@@ -442,3 +416,4 @@ const Dashboard = () => {
 };
 
 export default Dashboard;
+
