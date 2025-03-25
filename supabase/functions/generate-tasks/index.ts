@@ -97,7 +97,7 @@ serve(async (req) => {
         'HTTP-Referer': 'https://lovable.ai',
       },
       body: JSON.stringify({
-        model: 'openai/gpt-4o-mini',
+        model: 'deepseek/deepseek-r1:free',
         messages: [
           {
             role: 'system',
