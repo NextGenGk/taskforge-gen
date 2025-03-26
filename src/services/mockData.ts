@@ -1,4 +1,3 @@
-
 import { 
   Business, 
   BusinessSize, 
@@ -199,4 +198,51 @@ export const mockDataService = {
   getTips: (businessId: string) => tips.filter(tip => tip.businessId === businessId),
   getTipsByCategory: (businessId: string, category: TaskCategory) => 
     tips.filter(tip => tip.businessId === businessId && tip.category === category),
+  
+  // Service function to generate tasks for a business
+  generateTasksForBusiness: (businessId: string): Task[] => {
+    const business = businesses.find(b => b.id === businessId);
+    if (!business) return [];
+    
+    // Create new tasks based on business type
+    const newTasks: Task[] = [];
+    
+    if (business?.type === 'Cafe') {
+      newTasks.push({
+        id: `task_${tasks.length + 1}`,
+        businessId,
+        title: "Create seasonal menu specials",
+        description: "Develop and test new seasonal menu items using locally sourced ingredients. Focus on both beverages and food items.",
+        frequency: "quarterly",
+        priority: "medium",
+        status: "pending",
+        dueDate: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000),
+        category: "operations",
+        tags: ["menu development", "seasonal", "local sourcing"],
+        createdAt: new Date(),
+        updatedAt: new Date()
+      });
+    }
+    
+    if (business?.type === 'Consultancy') {
+      newTasks.push({
+        id: `task_${tasks.length + 2}`,
+        businessId,
+        title: "Develop client onboarding process documentation",
+        description: "Create comprehensive documentation for the client onboarding process to ensure consistency and quality in service delivery.",
+        frequency: "once",
+        priority: "high",
+        status: "pending",
+        dueDate: new Date(Date.now() + 10 * 24 * 60 * 60 * 1000),
+        category: "operations",
+        tags: ["process improvement", "documentation", "client management"],
+        createdAt: new Date(),
+        updatedAt: new Date()
+      });
+    }
+    
+    // Add these tasks to our mock database
+    tasks.push(...newTasks);
+    return newTasks;
+  }
 };

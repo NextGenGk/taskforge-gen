@@ -29,10 +29,33 @@ serve(async (req) => {
       );
     }
 
+    if (!userId) {
+      return new Response(
+        JSON.stringify({ error: 'User ID is required' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     // Initialize Supabase client
     const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+    // Verify user has access to the business
+    const { data: businessAccess, error: accessError } = await supabase
+      .from('businesses')
+      .select('id')
+      .eq('id', businessId)
+      .eq('user_id', userId)
+      .maybeSingle();
+
+    if (accessError || !businessAccess) {
+      console.error('Access verification failed:', accessError);
+      return new Response(
+        JSON.stringify({ error: 'Unauthorized access to business data' }),
+        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
 
     // Fetch business data
     const { data: business, error: businessError } = await supabase
@@ -178,6 +201,7 @@ serve(async (req) => {
         .from('tasks')
         .insert({
           business_id: businessId,
+          user_id: userId, // Ensure tasks are associated with the user
           title: task.title,
           description: task.description,
           frequency: task.frequency,
